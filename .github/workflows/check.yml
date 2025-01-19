@@ -1,0 +1,28 @@
+name: Check
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Install components
+      run: |
+        rustup component add clippy
+        rustup component add rustfmt
+
+    - name: Cache
+      uses: Swatinem/rust-cache@v2
+
+    - name: Check
+      run: |
+        cargo fmt -- --check
+        cargo clippy --all-targets --all-features -- -D warnings
+
+        cargo test
