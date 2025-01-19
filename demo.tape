@@ -1,5 +1,3 @@
-Output "/mnt/z/demo.gif"
-
 Require echo
 Require ccsum
 Require asciinema

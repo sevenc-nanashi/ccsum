@@ -3,7 +3,7 @@
 task "demo" do
   require "json"
 
-  # sh "vhs demo.tape"
+  sh "vhs demo.tape"
   puts "Post-processing demo_raw.cast"
 
   lines = File.readlines("./demo_raw.cast")
