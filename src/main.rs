@@ -21,6 +21,12 @@ enum Algorithm {
     SHA512,
 }
 
+#[derive(Debug, Copy, Clone, clap::ValueEnum)]
+enum Group {
+    Dir,
+    Basename,
+}
+
 #[derive(Debug, Parser)]
 #[clap(version, about)]
 struct Options {
@@ -77,6 +83,10 @@ struct Options {
     /// use the specified algorithm to generate the checksum.
     #[clap(short, long, default_value = "sha256")]
     algorithm: Algorithm,
+
+    /// group output by specified method.
+    #[clap(short, long)]
+    group: Option<Group>,
 
     /// colorize the output, even if stdout is not a tty.
     #[clap(alias = "C", long, default_value = "false")]
@@ -135,6 +145,28 @@ fn main() -> anyhow::Result<()> {
         options.files.push("-".to_string());
     }
 
+    match options.group {
+        Some(Group::Dir) => {
+            options.files.sort_by(|a, b| {
+                let a = std::path::Path::new(a);
+                let b = std::path::Path::new(b);
+                a.parent()
+                    .unwrap_or_else(|| std::path::Path::new(""))
+                    .cmp(b.parent().unwrap_or_else(|| std::path::Path::new("")))
+            });
+        }
+        Some(Group::Basename) => {
+            options.files.sort_by(|a, b| {
+                let a = std::path::Path::new(a);
+                let b = std::path::Path::new(b);
+                a.file_name()
+                    .unwrap_or_else(|| std::ffi::OsStr::new(""))
+                    .cmp(b.file_name().unwrap_or_else(|| std::ffi::OsStr::new("")))
+            });
+        }
+        None => {}
+    }
+
     if options.check {
         do_check(&options)?;
     } else {
@@ -162,11 +194,7 @@ fn do_checksum(options: &Options) -> anyhow::Result<()> {
         };
 
         let hue = ((checksum[0] as f32) * 256.0 + checksum[1] as f32) / (256.0 * 256.0) * 360.0;
-        let color = palette::oklch::Oklch::new(
-            0.5,
-            0.5,
-            hue,
-        );
+        let color = palette::oklch::Oklch::new(0.7, 0.4, hue);
         let rgb: palette::Srgb<f32> = color.into_color();
         let rgb: palette::Srgb<u8> = rgb.into_format();
         let checksum_hex = hex::encode(checksum);
@@ -177,7 +205,12 @@ fn do_checksum(options: &Options) -> anyhow::Result<()> {
         });
 
         let line = if options.tag {
-            format!("{} ({}) = {}", options.algorithm, escape::escape(file), colored_checksum)
+            format!(
+                "{} ({}) = {}",
+                options.algorithm,
+                escape::escape(file),
+                colored_checksum
+            )
         } else {
             format!("{}  {}", colored_checksum, escape::escape(file))
         };
