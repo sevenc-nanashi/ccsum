@@ -24,16 +24,23 @@ fn test_match(#[case] args: &[&str]) -> anyhow::Result<()> {
     Ok(())
 }
 
+#[rstest::rstest]
 #[test]
-fn test_check() -> anyhow::Result<()> {
+#[case(&[])]
+#[case(&["--tag"])]
+fn test_check(#[case] args: &[&str]) -> anyhow::Result<()> {
     let files = glob::glob(concat!(env!("CARGO_MANIFEST_DIR"), "/src/*.rs"))?
         .collect::<Result<Vec<_>, _>>()?;
 
-    let sha256_out = assert_cmd::Command::new("sha256sum").args(&files).unwrap();
+    let sha256_out = assert_cmd::Command::new("sha256sum")
+        .args(args)
+        .args(&files)
+        .unwrap();
     let sha256_out = std::str::from_utf8(&sha256_out.stdout)?;
 
     let ccsum_out = assert_cmd::Command::cargo_bin("ccsum")?
         .args(["-a", "sha256"])
+        .args(args)
         .args(&files)
         .unwrap();
     let ccsum_out = std::str::from_utf8(&ccsum_out.stdout)?;
