@@ -1,0 +1,27 @@
+[package]
+name = "ccsum"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow = "1.0.95"
+clap = { version = "4.5.26", features = ["derive"] }
+clap_complete = "4.5.42"
+colored = "3.0.0"
+duplicate = "2.0.0"
+easy-ext = "1.0.2"
+fs-err = "3.0.0"
+hex = "0.4.3"
+lazy-regex = "3.4.1"
+md-5 = "0.10.6"
+palette = "0.7.6"
+regex = "1.11.1"
+sha1 = "0.10.6"
+sha2 = "0.10.8"
+strum = { version = "0.26.3", features = ["derive"] }
+thiserror = "2.0.11"
+
+[dev-dependencies]
+assert_cmd = "2.0.16"
+glob = "0.3.2"
+rstest = "0.24.0"
