@@ -204,15 +204,18 @@ fn do_checksum(options: &Options) -> anyhow::Result<()> {
             b: rgb.blue,
         });
 
+        let file_escaped = if options.zero {
+            file.clone()
+        } else {
+            escape::escape(file)
+        };
         let line = if options.tag {
             format!(
                 "{} ({}) = {}",
-                options.algorithm,
-                escape::escape(file),
-                colored_checksum
+                options.algorithm, file_escaped, colored_checksum
             )
         } else {
-            format!("{}  {}", colored_checksum, escape::escape(file))
+            format!("{}  {}", colored_checksum, file_escaped)
         };
         if options.zero {
             print!("{}\0", line);
