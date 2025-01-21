@@ -28,8 +28,6 @@ task "demo" do
     end
 
   File.write("./demo.cast", [header, *events_shifted].map(&:to_json).join("\n"))
-
-  sh 'agg --font-family "JetBrainsMono Nerd Font Mono" demo.cast demo.gif'
 end
 
 task "readme" do
