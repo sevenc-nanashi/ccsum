@@ -1,11 +1,11 @@
 use crate::digest_ext::HashExt;
 use clap::{CommandFactory, Parser};
 use colored::Colorize;
-use palette::IntoColor;
 use std::io::{BufRead, Read};
 use strum::IntoEnumIterator;
 mod digest_ext;
 mod escape;
+mod utils;
 
 #[derive(
     Debug, Copy, Clone, clap::ValueEnum, strum::Display, strum::EnumString, strum::EnumIter,
@@ -19,12 +19,6 @@ enum Algorithm {
     SHA256,
     #[clap(name = "sha512")]
     SHA512,
-}
-
-#[derive(Debug, Copy, Clone, clap::ValueEnum)]
-enum Group {
-    Dir,
-    Basename,
 }
 
 #[derive(Debug, Parser)]
@@ -47,12 +41,12 @@ struct Options {
     check: bool,
 
     /// create a BSD-style checksum.
-    #[clap(long, default_value = "false")]
+    #[clap(long, default_value = "false", help_heading = "Display options")]
     tag: bool,
 
     /// end each output line with a NULL character instead of newline, and disable file name
     /// escaping.
-    #[clap(short, long, default_value = "false")]
+    #[clap(short, long, default_value = "false", help_heading = "Display options")]
     zero: bool,
 
     /// don't fail or report status for missing files.
@@ -84,16 +78,43 @@ struct Options {
     #[clap(short, long, default_value = "sha256")]
     algorithm: Algorithm,
 
-    /// group output by specified method.
-    #[clap(short, long)]
-    group: Option<Group>,
+    /// group output by last N segments of the path.
+    #[clap(
+        short,
+        long,
+        help_heading = "Group mode options",
+        num_args = 0..=1,
+        default_missing_value = "1",
+        require_equals = true,
+        value_parser = clap::value_parser!(u64).range(1..),
+    )]
+    group: Option<u64>,
+
+    /// group output by last N segments of the path, and fail if any checksums in the group are
+    /// different.
+    #[clap(
+        short = 'G',
+        long,
+        help_heading = "Group mode options",
+        conflicts_with = "group",
+        num_args = 0..=1,
+        default_missing_value = "1",
+        require_equals = true,
+        value_parser = clap::value_parser!(u64).range(1..),
+    )]
+    group_with_check: Option<u64>,
 
     /// colorize the output, even if stdout is not a tty.
-    #[clap(alias = "C", long, default_value = "false")]
+    #[clap(
+        alias = "C",
+        long,
+        default_value = "false",
+        help_heading = "Display options"
+    )]
     color: bool,
 
     /// disable colorized output.
-    #[clap(long, default_value = "false")]
+    #[clap(long, default_value = "false", help_heading = "Display options")]
     no_color: bool,
 
     /// the files to generate the checksum for.
@@ -145,30 +166,10 @@ fn main() -> anyhow::Result<()> {
         options.files.push("-".to_string());
     }
 
-    match options.group {
-        Some(Group::Dir) => {
-            options.files.sort_by(|a, b| {
-                let a = std::path::Path::new(a);
-                let b = std::path::Path::new(b);
-                a.parent()
-                    .unwrap_or_else(|| std::path::Path::new(""))
-                    .cmp(b.parent().unwrap_or_else(|| std::path::Path::new("")))
-            });
-        }
-        Some(Group::Basename) => {
-            options.files.sort_by(|a, b| {
-                let a = std::path::Path::new(a);
-                let b = std::path::Path::new(b);
-                a.file_name()
-                    .unwrap_or_else(|| std::ffi::OsStr::new(""))
-                    .cmp(b.file_name().unwrap_or_else(|| std::ffi::OsStr::new("")))
-            });
-        }
-        None => {}
-    }
-
     if options.check {
         do_check(&options)?;
+    } else if options.group.is_some() || options.group_with_check.is_some() {
+        do_checksum_with_group(&options)?;
     } else {
         do_checksum(&options)?;
     }
@@ -193,15 +194,12 @@ fn do_checksum(options: &Options) -> anyhow::Result<()> {
             }
         };
 
-        let hue = ((checksum[0] as f32) * 256.0 + checksum[1] as f32) / (256.0 * 256.0) * 360.0;
-        let color = palette::oklch::Oklch::new(0.7, 0.4, hue);
-        let rgb: palette::Srgb<f32> = color.into_color();
-        let rgb: palette::Srgb<u8> = rgb.into_format();
+        let (red, green, blue) = utils::checksum_to_color(&checksum, false);
         let checksum_hex = hex::encode(checksum);
         let colored_checksum = checksum_hex.color(colored::Color::TrueColor {
-            r: rgb.red,
-            g: rgb.green,
-            b: rgb.blue,
+            r: red,
+            g: green,
+            b: blue,
         });
 
         let file_display = if options.zero {
@@ -226,6 +224,109 @@ fn do_checksum(options: &Options) -> anyhow::Result<()> {
 
     if anything_failed {
         std::process::exit(1);
+    }
+
+    Ok(())
+}
+
+fn do_checksum_with_group(options: &Options) -> anyhow::Result<()> {
+    let mut anything_failed = false;
+    let mut anything_group_failed = false;
+    let mut anything_succeeded = false;
+    let n = options.group.or(options.group_with_check).unwrap() as usize;
+
+    let mut groups = std::collections::HashMap::new();
+    for file in &options.files {
+        let (_head, tail) = utils::split_at_last_segments(file, n);
+        groups.entry(tail).or_insert_with(Vec::new).push(file);
+    }
+    let mut groups = groups.into_iter().collect::<Vec<_>>();
+    groups.sort_by(|(a, _), (b, _)| a.cmp(b));
+    for (_tail, files) in groups {
+        let checksums = files
+            .iter()
+            .map(|&file| {
+                let checksum = if file == "-" {
+                    checksum_stdin(options.algorithm)
+                } else {
+                    checksum_file(file, options.algorithm)
+                };
+                let checksum = match checksum {
+                    Ok(checksum) => checksum,
+                    Err(e) => {
+                        eprintln!("{}: {}", file, e.to_string().red());
+                        anything_failed = true;
+                        return None;
+                    }
+                };
+                Some(checksum)
+            })
+            .collect::<Vec<_>>();
+
+        let is_same = checksums.windows(2).all(|pair| pair[0] == pair[1]);
+
+        for (checksum, file) in checksums.iter().zip(files) {
+            let Some(checksum) = checksum else {
+                continue;
+            };
+            let (red, green, blue) = utils::checksum_to_color(checksum, is_same);
+            let checksum_hex = hex::encode(checksum);
+            let colored_checksum = checksum_hex.color(colored::Color::TrueColor {
+                r: red,
+                g: green,
+                b: blue,
+            });
+
+            let (file_head, file_tail) = utils::split_at_last_segments(file, n);
+            let file_display = if options.zero {
+                file_head.unwrap_or_default() + &file_tail
+            } else {
+                escape::escape(&file_head.unwrap_or_default())
+                    .dimmed()
+                    .to_string()
+                    + &file_tail
+            };
+
+            let line = if options.tag {
+                format!(
+                    "{} ({}) = {}",
+                    options.algorithm, file_display, colored_checksum
+                )
+            } else {
+                format!("{}  {}", colored_checksum, file_display)
+            };
+            if options.zero {
+                print!("{}\0", line);
+            } else {
+                println!("{}", line);
+            }
+        }
+
+        if checksums.iter().any(Option::is_none) {
+            anything_failed = true;
+        }
+        if checksums.len() > 1 {
+            if is_same {
+                anything_succeeded = true;
+            } else {
+                anything_group_failed = true;
+            }
+        }
+    }
+
+    if anything_failed {
+        std::process::exit(1);
+    }
+    if options.group_with_check.is_some() {
+        if anything_group_failed {
+            std::process::exit(1);
+        }
+        if !anything_succeeded {
+            eprintln!(
+                "{}",
+                "no checksums validated, all groups have only one file".yellow()
+            );
+        }
     }
 
     Ok(())

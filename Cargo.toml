@@ -16,6 +16,7 @@ lazy-regex = "3.4.1"
 md-5 = "0.10.6"
 palette = "0.7.6"
 regex = "1.11.1"
+regex-split = "0.1.0"
 sha1 = "0.10.6"
 sha2 = "0.10.8"
 strum = { version = "0.26.3", features = ["derive"] }

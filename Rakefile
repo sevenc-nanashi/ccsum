@@ -31,3 +31,16 @@ task "demo" do
 
   sh 'agg --font-family "JetBrainsMono Nerd Font Mono" demo.cast demo.gif'
 end
+
+task "readme" do
+  readme = File.read("README.md")
+  usage = `cargo run -- --help`.strip
+  readme.gsub!(/(?<=<!-- usage starts here -->\n).*(?=<!-- usage ends here)/m) do
+    <<~USAGE
+      ```
+      #{usage}
+      ```
+    USAGE
+  end
+  File.write("README.md", readme)
+end

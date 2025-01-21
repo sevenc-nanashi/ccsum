@@ -45,24 +45,30 @@ fn test_check(#[case] args: &[&str]) -> anyhow::Result<()> {
         .unwrap();
     let ccsum_out = std::str::from_utf8(&ccsum_out.stdout)?;
 
-    assert!(assert_cmd::Command::cargo_bin("ccsum")?
-        .args(["-a", "sha256", "-c"])
-        .write_stdin(ccsum_out.as_bytes())
-        .unwrap()
-        .status
-        .success());
-    assert!(assert_cmd::Command::cargo_bin("ccsum")?
-        .args(["-a", "sha256", "-c"])
-        .write_stdin(sha256_out.as_bytes())
-        .unwrap()
-        .status
-        .success());
-    assert!(assert_cmd::Command::new("sha256sum")
-        .args(["-c"])
-        .write_stdin(ccsum_out.as_bytes())
-        .unwrap()
-        .status
-        .success());
+    assert!(
+        assert_cmd::Command::cargo_bin("ccsum")?
+            .args(["-a", "sha256", "-c"])
+            .write_stdin(ccsum_out.as_bytes())
+            .unwrap()
+            .status
+            .success()
+    );
+    assert!(
+        assert_cmd::Command::cargo_bin("ccsum")?
+            .args(["-a", "sha256", "-c"])
+            .write_stdin(sha256_out.as_bytes())
+            .unwrap()
+            .status
+            .success()
+    );
+    assert!(
+        assert_cmd::Command::new("sha256sum")
+            .args(["-c"])
+            .write_stdin(ccsum_out.as_bytes())
+            .unwrap()
+            .status
+            .success()
+    );
 
     Ok(())
 }
