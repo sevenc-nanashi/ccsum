@@ -71,7 +71,7 @@ Sleep 500ms
 Up@100ms 3
 Sleep 300ms
 Ctrl+C
-Type "F3-C--group-with-check # or -G"
+Type "3F-C--group-with-check # or -G"
 Sleep 1s
 Enter
 
