@@ -7,7 +7,7 @@ Set FontSize 16
 Set Width 1200
 Set Height 600
 
-Type@0s "asciinema rec demo_raw.cast --overwrite"
+Type@0s "DEMO=true asciinema rec demo_raw.cast --overwrite"
 Enter
 Sleep 3s
 Type@0s "bleopt complete_auto_history="
@@ -59,24 +59,6 @@ Enter
 
 Sleep 500ms
 Type "# Now the output is grouped and easier to read"
-Sleep 1s
-Enter
-
-Sleep 500ms
-Type "# You can also use --group-with-check to check checksums in the same group"
-Sleep 1s
-Enter
-
-Sleep 500ms
-Up@100ms 3
-Sleep 300ms
-Ctrl+C
-Type "3F-C--group-with-check # or -G"
-Sleep 1s
-Enter
-
-Sleep 500ms
-Type "# The command is failed (exit code 1) because demo/foo/01.txt and demo/bar/01.txt have different checksums"
 Sleep 1s
 Enter
 
