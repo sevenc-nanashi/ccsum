@@ -16,7 +16,6 @@ clap = { version = "4.5.26", features = ["derive", "env"] }
 clap_complete = "4.5.42"
 colored = "3.0.0"
 duplicate = "2.0.0"
-easy-ext = "1.0.2"
 fs-err = "3.0.0"
 hex = "0.4.3"
 lazy-regex = "3.4.1"
@@ -28,6 +27,7 @@ sha1 = "0.10.6"
 sha2 = "0.10.8"
 strum = { version = "0.26.3", features = ["derive"] }
 thiserror = "2.0.11"
+xxhash-rust = { version = "0.8.15", features = ["xxh32", "xxh64", "xxh3"] }
 
 [dev-dependencies]
 assert_cmd = "2.0.16"

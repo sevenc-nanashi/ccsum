@@ -15,10 +15,20 @@ enum Algorithm {
     MD5,
     #[clap(name = "sha1")]
     SHA1,
-    #[clap(name = "sha256")]
+    #[clap(name = "sha224")]
+    SHA224,
+    #[clap(name = "sha256", alias = "sha2")]
     SHA256,
+    #[clap(name = "sha384")]
+    SHA384,
     #[clap(name = "sha512")]
     SHA512,
+    #[clap(name = "xxh32")]
+    Xxh32,
+    #[clap(name = "xxh64")]
+    Xxh64,
+    #[clap(name = "xxh3")]
+    Xxh3,
 }
 
 #[derive(Debug, Parser)]
@@ -129,8 +139,13 @@ fn checksum_read(data: impl Read, algorithm: Algorithm, buffer_size: usize) -> V
     match algorithm {
         Algorithm::MD5 => md5::Md5::hash(data, buffer_size),
         Algorithm::SHA1 => sha1::Sha1::hash(data, buffer_size),
+        Algorithm::SHA224 => sha2::Sha224::hash(data, buffer_size),
         Algorithm::SHA256 => sha2::Sha256::hash(data, buffer_size),
+        Algorithm::SHA384 => sha2::Sha384::hash(data, buffer_size),
         Algorithm::SHA512 => sha2::Sha512::hash(data, buffer_size),
+        Algorithm::Xxh32 => xxhash_rust::xxh32::Xxh32::hash(data, buffer_size),
+        Algorithm::Xxh64 => xxhash_rust::xxh64::Xxh64::hash(data, buffer_size),
+        Algorithm::Xxh3 => xxhash_rust::xxh3::Xxh3::hash(data, buffer_size),
     }
 }
 

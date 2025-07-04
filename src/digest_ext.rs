@@ -1,10 +1,22 @@
 use std::io::Read;
 
-use easy_ext::ext;
+use duplicate::duplicate_item;
 use sha2::digest::Digest;
 
-#[ext(HashExt)]
-pub impl<T: Digest> T {
+pub trait HashExt {
+    fn hash(data: impl Read, buffer_size: usize) -> Vec<u8>;
+}
+
+#[duplicate_item(
+    T;
+    [md5::Md5];
+    [sha1::Sha1];
+    [sha2::Sha224];
+    [sha2::Sha256];
+    [sha2::Sha384];
+    [sha2::Sha512];
+)]
+impl HashExt for T {
     fn hash(data: impl Read, buffer_size: usize) -> Vec<u8> {
         let mut hasher = T::new();
         let mut buffer = vec![0; buffer_size];
@@ -17,5 +29,43 @@ pub impl<T: Digest> T {
             hasher.update(&buffer[..bytes_read]);
         }
         hasher.finalize().to_vec()
+    }
+}
+
+impl HashExt for xxhash_rust::xxh3::Xxh3 {
+    fn hash(data: impl Read, buffer_size: usize) -> Vec<u8> {
+        let mut hasher = xxhash_rust::xxh3::Xxh3::new();
+        let mut buffer = vec![0; buffer_size];
+        let mut reader = data;
+        loop {
+            let bytes_read = reader.read(&mut buffer).unwrap();
+            if bytes_read == 0 {
+                break;
+            }
+            hasher.update(&buffer[..bytes_read]);
+        }
+        hasher.digest().to_be_bytes().to_vec()
+    }
+}
+
+#[duplicate_item(
+    T;
+    [xxhash_rust::xxh32::Xxh32];
+    [xxhash_rust::xxh64::Xxh64];
+)]
+impl HashExt for T {
+    fn hash(data: impl Read, buffer_size: usize) -> Vec<u8> {
+        // TODO: Allow setting seed?
+        let mut hasher = T::new(0);
+        let mut buffer = vec![0; buffer_size];
+        let mut reader = data;
+        loop {
+            let bytes_read = reader.read(&mut buffer).unwrap();
+            if bytes_read == 0 {
+                break;
+            }
+            hasher.update(&buffer[..bytes_read]);
+        }
+        hasher.digest().to_be_bytes().to_vec()
     }
 }

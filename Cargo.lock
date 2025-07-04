@@ -133,7 +133,6 @@ dependencies = [
  "clap_complete",
  "colored",
  "duplicate",
- "easy-ext",
  "fs-err",
  "glob",
  "hex",
@@ -147,6 +146,7 @@ dependencies = [
  "sha2",
  "strum",
  "thiserror",
+ "xxhash-rust",
 ]
 
 [[package]]
@@ -270,12 +270,6 @@ dependencies = [
  "proc-macro2",
  "proc-macro2-diagnostics",
 ]
-
-[[package]]
-name = "easy-ext"
-version = "1.0.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cc5d6d6a8504f8caedd7de14576464383900cd3840b7033a7a3dce5ac00121ca"
 
 [[package]]
 name = "equivalent"
@@ -959,6 +953,12 @@ checksum = "c8d71a593cc5c42ad7876e2c1fda56f314f3754c084128833e64f1345ff8a03a"
 dependencies = [
  "memchr",
 ]
+
+[[package]]
+name = "xxhash-rust"
+version = "0.8.15"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fdd20c5420375476fbd4394763288da7eb0cc0b8c11deed431a91562af7335d3"
 
 [[package]]
 name = "yansi"
