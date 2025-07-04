@@ -155,9 +155,7 @@ fn checksum_file(file: &str, algorithm: Algorithm, buffer_size: usize) -> anyhow
 }
 
 fn checksum_stdin(algorithm: Algorithm, buffer_size: usize) -> anyhow::Result<Vec<u8>> {
-    let mut data = Vec::new();
-    std::io::stdin().read_to_end(&mut data)?;
-    Ok(checksum_read(&data[..], algorithm, buffer_size))
+    Ok(checksum_read(std::io::stdin(), algorithm, buffer_size))
 }
 
 fn main() -> anyhow::Result<()> {
