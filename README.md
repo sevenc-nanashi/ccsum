@@ -22,20 +22,22 @@ cargo install --git https://github.com/sevenc-nanashi/ccsum.git
 
 <!-- usage starts here -->
 ```
+Convenient Checksum Utility
+
 Usage: ccsum [OPTIONS] [FILES]...
 
 Arguments:
   [FILES]...  the files to generate the checksum for
 
 Options:
-      --completion <COMPLETION>  print shell completion script [possible values: bash, elvish, fish, powershell, zsh]
-  -b, --binary                   read in binary mode. (noop)
-  -t, --text                     read in text mode. (noop)
-  -c, --check                    check for differences between the new and original file
-  -a, --algorithm <ALGORITHM>    use the specified algorithm to generate the checksum [default: sha256] [possible values: md5, sha1, sha256, sha512]
-  -B, --buffer <SIZE>            use the specified buffer size in bytes [default: 4096]
-  -h, --help                     Print help
-  -V, --version                  Print version
+      --completion <COMPLETION>    print shell completion script [possible values: bash, elvish, fish, powershell, zsh]
+  -b, --binary                     read in binary mode. (noop)
+  -t, --text                       read in text mode. (noop)
+  -c, --check                      check for differences between the new and original file
+  -a, --algorithm <ALGORITHM>      use the specified algorithm to generate the checksum [default: sha256] [possible values: md5, sha1, sha224, sha256, sha384, sha512, xxh32, xxh64, xxh3]
+  -B, --buffer-size <BUFFER_SIZE>  buffer size for reading files, in bytes [env: CCSUM_BUFFER_SIZE=] [default: 8192]
+  -h, --help                       Print help
+  -V, --version                    Print version
 
 Display options:
       --tag       create a BSD-style checksum
