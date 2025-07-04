@@ -33,6 +33,7 @@ Options:
   -t, --text                     read in text mode. (noop)
   -c, --check                    check for differences between the new and original file
   -a, --algorithm <ALGORITHM>    use the specified algorithm to generate the checksum [default: sha256] [possible values: md5, sha1, sha256, sha512]
+  -B, --buffer <SIZE>            use the specified buffer size in bytes [default: 4096]
   -h, --help                     Print help
   -V, --version                  Print version
 

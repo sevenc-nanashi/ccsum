@@ -78,6 +78,10 @@ struct Options {
     #[clap(short, long, default_value = "sha256")]
     algorithm: Algorithm,
 
+    /// buffer size for reading files, in bytes.
+    #[clap(short = 'B', long, default_value = "8192", env = "CCSUM_BUFFER_SIZE")]
+    buffer_size: usize,
+
     /// group output by last N segments of the path.
     #[clap(
         short,
@@ -121,26 +125,24 @@ struct Options {
     files: Vec<String>,
 }
 
-fn checksum_bytes(data: &[u8], algorithm: Algorithm) -> Vec<u8> {
+fn checksum_read(data: impl Read, algorithm: Algorithm, buffer_size: usize) -> Vec<u8> {
     match algorithm {
-        Algorithm::MD5 => md5::Md5::hash(data),
-        Algorithm::SHA1 => sha1::Sha1::hash(data),
-        Algorithm::SHA256 => sha2::Sha256::hash(data),
-        Algorithm::SHA512 => sha2::Sha512::hash(data),
+        Algorithm::MD5 => md5::Md5::hash(data, buffer_size),
+        Algorithm::SHA1 => sha1::Sha1::hash(data, buffer_size),
+        Algorithm::SHA256 => sha2::Sha256::hash(data, buffer_size),
+        Algorithm::SHA512 => sha2::Sha512::hash(data, buffer_size),
     }
 }
 
-fn checksum_file(file: &str, algorithm: Algorithm) -> anyhow::Result<Vec<u8>> {
-    let mut data = Vec::new();
-    let mut file = fs_err::File::open(file)?;
-    file.read_to_end(&mut data)?;
-    Ok(checksum_bytes(&data, algorithm))
+fn checksum_file(file: &str, algorithm: Algorithm, buffer_size: usize) -> anyhow::Result<Vec<u8>> {
+    let file = fs_err::File::open(file)?;
+    Ok(checksum_read(&file, algorithm, buffer_size))
 }
 
-fn checksum_stdin(algorithm: Algorithm) -> anyhow::Result<Vec<u8>> {
+fn checksum_stdin(algorithm: Algorithm, buffer_size: usize) -> anyhow::Result<Vec<u8>> {
     let mut data = Vec::new();
     std::io::stdin().read_to_end(&mut data)?;
-    Ok(checksum_bytes(&data, algorithm))
+    Ok(checksum_read(&data[..], algorithm, buffer_size))
 }
 
 fn main() -> anyhow::Result<()> {
@@ -181,9 +183,9 @@ fn do_checksum(options: &Options) -> anyhow::Result<()> {
     let mut anything_failed = false;
     for file in &options.files {
         let checksum = if file == "-" {
-            checksum_stdin(options.algorithm)
+            checksum_stdin(options.algorithm, options.buffer_size)
         } else {
-            checksum_file(file, options.algorithm)
+            checksum_file(file, options.algorithm, options.buffer_size)
         };
         let checksum = match checksum {
             Ok(checksum) => checksum,
@@ -247,9 +249,9 @@ fn do_checksum_with_group(options: &Options) -> anyhow::Result<()> {
             .iter()
             .map(|&file| {
                 let checksum = if file == "-" {
-                    checksum_stdin(options.algorithm)
+                    checksum_stdin(options.algorithm, options.buffer_size)
                 } else {
-                    checksum_file(file, options.algorithm)
+                    checksum_file(file, options.algorithm, options.buffer_size)
                 };
                 let checksum = match checksum {
                     Ok(checksum) => checksum,
@@ -405,7 +407,7 @@ fn do_line(options: &Options, file: &str, line: &str) -> Option<bool> {
         Err(_) => unreachable!(),
     };
 
-    let result = process_line(algorithm, &filename, &hash);
+    let result = process_line(algorithm, options.buffer_size, &filename, &hash);
     match &result {
         Ok(()) => {
             ret = Some(true);
@@ -469,8 +471,14 @@ fn parse_line(line: &str) -> Result<(Algorithm, String, String), CheckError> {
     }
 }
 
-fn process_line(algorithm: Algorithm, filename: &str, hash: &str) -> Result<(), CheckError> {
-    let actual = checksum_file(filename, algorithm).map_err(CheckError::ReadFailed)?;
+fn process_line(
+    algorithm: Algorithm,
+    buffer_size: usize,
+
+    filename: &str,
+    hash: &str,
+) -> Result<(), CheckError> {
+    let actual = checksum_file(filename, algorithm, buffer_size).map_err(CheckError::ReadFailed)?;
     let expected = hex::decode(hash).expect("unreachable: already validated");
     if actual == expected {
         Ok(())
