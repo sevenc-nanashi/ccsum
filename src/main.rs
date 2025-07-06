@@ -32,7 +32,33 @@ enum Algorithm {
     Xxh3,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, clap::ValueEnum, strum::Display, strum::EnumString)]
+impl Algorithm {
+    fn bytes_len(self) -> usize {
+        match self {
+            Algorithm::MD5 => 16,
+            Algorithm::SHA1 => 20,
+            Algorithm::SHA224 => 28,
+            Algorithm::SHA256 => 32,
+            Algorithm::SHA384 => 48,
+            Algorithm::SHA512 => 64,
+            Algorithm::Xxh32 => 4,
+            Algorithm::Xxh64 => 8,
+            Algorithm::Xxh3 => 16, // Xxh3 can be configured, but we use the default
+        }
+    }
+}
+
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    clap::ValueEnum,
+    strum::Display,
+    strum::EnumString,
+    strum::EnumIter,
+)]
 enum ChecksumFormat {
     #[clap(name = "hex")]
     Hex,
@@ -42,6 +68,37 @@ enum ChecksumFormat {
     Base64NoPad,
     #[clap(name = "base64-url", alias = "base64url")]
     Base64Url,
+}
+
+impl ChecksumFormat {
+    fn encode(self, checksum: &[u8]) -> String {
+        match self {
+            ChecksumFormat::Hex => hex::encode(checksum),
+            ChecksumFormat::Base64 => base64::engine::general_purpose::STANDARD.encode(checksum),
+            ChecksumFormat::Base64NoPad => {
+                base64::engine::general_purpose::STANDARD_NO_PAD.encode(checksum)
+            }
+            ChecksumFormat::Base64Url => {
+                base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(checksum)
+            }
+        }
+    }
+
+    fn decode(self, source: &str) -> Result<Vec<u8>, CheckError> {
+        match self {
+            ChecksumFormat::Hex => hex::decode(source)
+                .map_err(|_| CheckError::InvalidLine("invalid hex format".to_string())),
+            ChecksumFormat::Base64 => base64::engine::general_purpose::STANDARD
+                .decode(source)
+                .map_err(|_| CheckError::InvalidLine("invalid base64 format".to_string())),
+            ChecksumFormat::Base64NoPad => base64::engine::general_purpose::STANDARD_NO_PAD
+                .decode(source)
+                .map_err(|_| CheckError::InvalidLine("invalid base64 no pad format".to_string())),
+            ChecksumFormat::Base64Url => base64::engine::general_purpose::URL_SAFE_NO_PAD
+                .decode(source)
+                .map_err(|_| CheckError::InvalidLine("invalid base64 url format".to_string())),
+        }
+    }
 }
 
 #[derive(Debug, Parser)]
@@ -233,7 +290,7 @@ fn do_checksum(options: &Options) -> anyhow::Result<()> {
         };
 
         let (red, green, blue) = utils::checksum_to_color(&checksum, false);
-        let checksum_display = format_checksum(&checksum, options.format);
+        let checksum_display = options.format.encode(&checksum);
         let colored_checksum = checksum_display.color(colored::Color::TrueColor {
             r: red,
             g: green,
@@ -251,12 +308,12 @@ fn do_checksum(options: &Options) -> anyhow::Result<()> {
                 options.algorithm, file_display, colored_checksum
             )
         } else {
-            format!("{}  {}", colored_checksum, file_display)
+            format!("{colored_checksum}  {file_display}")
         };
         if options.zero {
-            print!("{}\0", line);
+            print!("{line}\0");
         } else {
-            println!("{}", line);
+            println!("{line}");
         }
     }
 
@@ -308,7 +365,7 @@ fn do_checksum_with_group(options: &Options) -> anyhow::Result<()> {
                 continue;
             };
             let (red, green, blue) = utils::checksum_to_color(checksum, is_same);
-            let checksum_display = format_checksum(checksum, options.format);
+            let checksum_display = options.format.encode(checksum);
             let colored_checksum = checksum_display.color(colored::Color::TrueColor {
                 r: red,
                 g: green,
@@ -331,12 +388,12 @@ fn do_checksum_with_group(options: &Options) -> anyhow::Result<()> {
                     options.algorithm, file_display, colored_checksum
                 )
             } else {
-                format!("{}  {}", colored_checksum, file_display)
+                format!("{colored_checksum}  {file_display}")
             };
             if options.zero {
-                print!("{}\0", line);
+                print!("{line}\0");
             } else {
-                println!("{}", line);
+                println!("{line}");
             }
         }
 
@@ -507,33 +564,28 @@ fn parse_line(line: &str) -> Result<(Algorithm, String, String), CheckError> {
     }
 }
 
-fn format_checksum(checksum: &[u8], format: ChecksumFormat) -> String {
-    match format {
-        ChecksumFormat::Hex => hex::encode(checksum),
-        ChecksumFormat::Base64 => base64::engine::general_purpose::STANDARD.encode(checksum),
-        ChecksumFormat::Base64NoPad => {
-            base64::engine::general_purpose::STANDARD_NO_PAD.encode(checksum)
-        }
-        ChecksumFormat::Base64Url => {
-            base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(checksum)
+fn parse_checksum_format(
+    source: &str,
+    algorithm: Algorithm,
+) -> Result<(Vec<u8>, ChecksumFormat), CheckError> {
+    let mut len_not_matched = vec![];
+    for fmt in ChecksumFormat::iter() {
+        if let Ok(bytes) = fmt.decode(source) {
+            if bytes.len() == algorithm.bytes_len() {
+                return Ok((bytes, fmt));
+            } else {
+                len_not_matched.push(fmt);
+            }
         }
     }
-}
 
-fn parse_checksum_format(format: &str) -> Result<(Vec<u8>, ChecksumFormat), CheckError> {
-    if let Ok(format) = base64::engine::general_purpose::URL_SAFE_NO_PAD.decode(format) {
-        Ok(((format), ChecksumFormat::Base64Url))
-    } else if let Ok(format) = base64::engine::general_purpose::STANDARD_NO_PAD.decode(format) {
-        Ok(((format), ChecksumFormat::Base64NoPad))
-    } else if let Ok(format) = base64::engine::general_purpose::STANDARD.decode(format) {
-        Ok(((format), ChecksumFormat::Base64))
-    } else if let Ok(format) = hex::decode(format) {
-        Ok(((format), ChecksumFormat::Hex))
-    } else {
-        Err(CheckError::InvalidLine(
-            "invalid checksum format".to_string(),
-        ))
-    }
+    Err(CheckError::InvalidLine(format!(
+        "failed to parse checksum: `{}` for algorithm `{}`. Expected length: {}, candidates: {:?}",
+        source,
+        algorithm,
+        algorithm.bytes_len(),
+        len_not_matched
+    )))
 }
 
 fn process_line(
@@ -544,7 +596,8 @@ fn process_line(
     hash: &str,
 ) -> Result<(), CheckError> {
     let actual = checksum_file(filename, algorithm, buffer_size).map_err(CheckError::ReadFailed)?;
-    let (expected, _) = parse_checksum_format(hash).expect("unreachable: already validated");
+    let (expected, _) =
+        parse_checksum_format(hash, algorithm).expect("unreachable: already validated");
     if actual == expected {
         Ok(())
     } else {
