@@ -12,6 +12,7 @@ authors = ["sevenc-nanashi"]
 
 [dependencies]
 anyhow = "1.0.95"
+base64 = "0.22.1"
 clap = { version = "4.5.26", features = ["derive", "env"] }
 clap_complete = "4.5.42"
 colored = "3.0.0"

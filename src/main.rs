@@ -1,4 +1,5 @@
 use crate::digest_ext::HashExt;
+use base64::Engine;
 use clap::{CommandFactory, Parser};
 use colored::Colorize;
 use std::io::{BufRead, Read};
@@ -31,6 +32,18 @@ enum Algorithm {
     Xxh3,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, clap::ValueEnum, strum::Display, strum::EnumString)]
+enum ChecksumFormat {
+    #[clap(name = "hex")]
+    Hex,
+    #[clap(name = "base64", alias = "base64-pad")]
+    Base64,
+    #[clap(name = "base64-no-pad", alias = "base64n")]
+    Base64NoPad,
+    #[clap(name = "base64-url", alias = "base64url")]
+    Base64Url,
+}
+
 #[derive(Debug, Parser)]
 #[clap(version, about)]
 struct Options {
@@ -58,6 +71,16 @@ struct Options {
     /// escaping.
     #[clap(short, long, default_value = "false", help_heading = "Display options")]
     zero: bool,
+
+    /// use the specified checksum format for output.
+    #[clap(
+        short,
+        long,
+        default_value = "hex",
+        help_heading = "Display options",
+        value_enum
+    )]
+    format: ChecksumFormat,
 
     /// don't fail or report status for missing files.
     #[clap(long, default_value = "false", help_heading = "Check mode options")]
@@ -210,8 +233,8 @@ fn do_checksum(options: &Options) -> anyhow::Result<()> {
         };
 
         let (red, green, blue) = utils::checksum_to_color(&checksum, false);
-        let checksum_hex = hex::encode(checksum);
-        let colored_checksum = checksum_hex.color(colored::Color::TrueColor {
+        let checksum_display = format_checksum(&checksum, options.format);
+        let colored_checksum = checksum_display.color(colored::Color::TrueColor {
             r: red,
             g: green,
             b: blue,
@@ -285,8 +308,8 @@ fn do_checksum_with_group(options: &Options) -> anyhow::Result<()> {
                 continue;
             };
             let (red, green, blue) = utils::checksum_to_color(checksum, is_same);
-            let checksum_hex = hex::encode(checksum);
-            let colored_checksum = checksum_hex.color(colored::Color::TrueColor {
+            let checksum_display = format_checksum(checksum, options.format);
+            let colored_checksum = checksum_display.color(colored::Color::TrueColor {
                 r: red,
                 g: green,
                 b: blue,
@@ -484,6 +507,35 @@ fn parse_line(line: &str) -> Result<(Algorithm, String, String), CheckError> {
     }
 }
 
+fn format_checksum(checksum: &[u8], format: ChecksumFormat) -> String {
+    match format {
+        ChecksumFormat::Hex => hex::encode(checksum),
+        ChecksumFormat::Base64 => base64::engine::general_purpose::STANDARD.encode(checksum),
+        ChecksumFormat::Base64NoPad => {
+            base64::engine::general_purpose::STANDARD_NO_PAD.encode(checksum)
+        }
+        ChecksumFormat::Base64Url => {
+            base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(checksum)
+        }
+    }
+}
+
+fn parse_checksum_format(format: &str) -> Result<(Vec<u8>, ChecksumFormat), CheckError> {
+    if let Ok(format) = base64::engine::general_purpose::URL_SAFE_NO_PAD.decode(format) {
+        Ok(((format), ChecksumFormat::Base64Url))
+    } else if let Ok(format) = base64::engine::general_purpose::STANDARD_NO_PAD.decode(format) {
+        Ok(((format), ChecksumFormat::Base64NoPad))
+    } else if let Ok(format) = base64::engine::general_purpose::STANDARD.decode(format) {
+        Ok(((format), ChecksumFormat::Base64))
+    } else if let Ok(format) = hex::decode(format) {
+        Ok(((format), ChecksumFormat::Hex))
+    } else {
+        Err(CheckError::InvalidLine(
+            "invalid checksum format".to_string(),
+        ))
+    }
+}
+
 fn process_line(
     algorithm: Algorithm,
     buffer_size: usize,
@@ -492,7 +544,7 @@ fn process_line(
     hash: &str,
 ) -> Result<(), CheckError> {
     let actual = checksum_file(filename, algorithm, buffer_size).map_err(CheckError::ReadFailed)?;
-    let expected = hex::decode(hash).expect("unreachable: already validated");
+    let (expected, _) = parse_checksum_format(hash).expect("unreachable: already validated");
     if actual == expected {
         Ok(())
     } else {
