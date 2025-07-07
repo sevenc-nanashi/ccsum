@@ -215,7 +215,11 @@ struct Options {
     files: Vec<String>,
 }
 
-fn checksum_read(data: impl Read, algorithm: Algorithm, buffer_size: usize) -> Result<Vec<u8>, std::io::Error> {
+fn checksum_read(
+    data: impl Read,
+    algorithm: Algorithm,
+    buffer_size: usize,
+) -> Result<Vec<u8>, std::io::Error> {
     match algorithm {
         Algorithm::MD5 => md5::Md5::hash(data, buffer_size),
         Algorithm::SHA1 => sha1::Sha1::hash(data, buffer_size),
