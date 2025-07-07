@@ -4,7 +4,7 @@ use duplicate::duplicate_item;
 use sha2::digest::Digest;
 
 pub trait HashExt {
-    fn hash(data: impl Read, buffer_size: usize) -> Vec<u8>;
+    fn hash(data: impl Read, buffer_size: usize) -> Result<Vec<u8>, std::io::Error>;
 }
 
 #[duplicate_item(
@@ -17,23 +17,23 @@ pub trait HashExt {
     [sha2::Sha512];
 )]
 impl HashExt for T {
-    fn hash(data: impl Read, buffer_size: usize) -> Vec<u8> {
+    fn hash(data: impl Read, buffer_size: usize) -> Result<Vec<u8>, std::io::Error> {
         let mut hasher = T::new();
         let mut buffer = vec![0; buffer_size];
         let mut reader = data;
         loop {
-            let bytes_read = reader.read(&mut buffer).unwrap();
+            let bytes_read = reader.read(&mut buffer)?;
             if bytes_read == 0 {
                 break;
             }
             hasher.update(&buffer[..bytes_read]);
         }
-        hasher.finalize().to_vec()
+        Ok(hasher.finalize().to_vec())
     }
 }
 
 impl HashExt for xxhash_rust::xxh3::Xxh3 {
-    fn hash(data: impl Read, buffer_size: usize) -> Vec<u8> {
+    fn hash(data: impl Read, buffer_size: usize) -> Result<Vec<u8>, std::io::Error> {
         let mut hasher = xxhash_rust::xxh3::Xxh3::new();
         let mut buffer = vec![0; buffer_size];
         let mut reader = data;
@@ -44,7 +44,7 @@ impl HashExt for xxhash_rust::xxh3::Xxh3 {
             }
             hasher.update(&buffer[..bytes_read]);
         }
-        hasher.digest().to_be_bytes().to_vec()
+        Ok(hasher.digest().to_be_bytes().to_vec())
     }
 }
 
@@ -54,7 +54,7 @@ impl HashExt for xxhash_rust::xxh3::Xxh3 {
     [xxhash_rust::xxh64::Xxh64];
 )]
 impl HashExt for T {
-    fn hash(data: impl Read, buffer_size: usize) -> Vec<u8> {
+    fn hash(data: impl Read, buffer_size: usize) -> Result<Vec<u8>, std::io::Error> {
         // TODO: Allow setting seed?
         let mut hasher = T::new(0);
         let mut buffer = vec![0; buffer_size];
@@ -66,6 +66,6 @@ impl HashExt for T {
             }
             hasher.update(&buffer[..bytes_read]);
         }
-        hasher.digest().to_be_bytes().to_vec()
+        Ok(hasher.digest().to_be_bytes().to_vec())
     }
 }
