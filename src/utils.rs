@@ -19,7 +19,9 @@ pub fn split_at_last_segments(path: &str, n: usize) -> (Option<String>, String) 
 }
 
 pub fn checksum_to_color(checksum: &[u8], dim: bool) -> (u8, u8, u8) {
-    let hue = ((checksum[0] as f32) * 256.0 + checksum[1] as f32) / (256.0 * 256.0) * 360.0;
+    let hue = ((checksum[checksum.len() - 2] as f32) * 256.0 + checksum[checksum.len() - 1] as f32)
+        / (256.0 * 256.0)
+        * 360.0;
     let color = if dim {
         palette::oklch::Oklch::new(0.5, 0.1, hue)
     } else {
