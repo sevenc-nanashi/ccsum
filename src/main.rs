@@ -239,7 +239,7 @@ fn checksum_stdin(algorithm: Algorithm, buffer_size: usize) -> anyhow::Result<Ve
 }
 
 fn main() -> anyhow::Result<()> {
-    let mut options = Options::parse();
+    let mut options = Options::parse_from(wild::args());
 
     if let Some(shell) = options.completion {
         clap_complete::generate(
