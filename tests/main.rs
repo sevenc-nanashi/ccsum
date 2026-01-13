@@ -1,3 +1,5 @@
+use assert_cmd::cargo_bin;
+
 #[rstest::rstest]
 #[test]
 #[case(&[])]
@@ -6,7 +8,7 @@ fn test_match(#[case] args: &[&str]) -> anyhow::Result<()> {
     let files = glob::glob(concat!(env!("CARGO_MANIFEST_DIR"), "/src/*.rs"))?
         .collect::<Result<Vec<_>, _>>()?;
 
-    let ccsum_out = assert_cmd::Command::cargo_bin("ccsum")?
+    let ccsum_out = assert_cmd::Command::new(cargo_bin!())
         .args(["-a", "sha256"])
         .args(args)
         .args(&files)
@@ -38,7 +40,7 @@ fn test_check(#[case] args: &[&str]) -> anyhow::Result<()> {
         .unwrap();
     let sha256_out = std::str::from_utf8(&sha256_out.stdout)?;
 
-    let ccsum_out = assert_cmd::Command::cargo_bin("ccsum")?
+    let ccsum_out = assert_cmd::Command::new(cargo_bin!())
         .args(["-a", "sha256"])
         .args(args)
         .args(&files)
@@ -46,7 +48,7 @@ fn test_check(#[case] args: &[&str]) -> anyhow::Result<()> {
     let ccsum_out = std::str::from_utf8(&ccsum_out.stdout)?;
 
     assert!(
-        assert_cmd::Command::cargo_bin("ccsum")?
+        assert_cmd::Command::new(cargo_bin!())
             .args(["-a", "sha256", "-c"])
             .write_stdin(ccsum_out.as_bytes())
             .unwrap()
@@ -54,7 +56,7 @@ fn test_check(#[case] args: &[&str]) -> anyhow::Result<()> {
             .success()
     );
     assert!(
-        assert_cmd::Command::cargo_bin("ccsum")?
+        assert_cmd::Command::new(cargo_bin!())
             .args(["-a", "sha256", "-c"])
             .write_stdin(sha256_out.as_bytes())
             .unwrap()

@@ -11,27 +11,27 @@ categories = ["command-line-utilities"]
 authors = ["sevenc-nanashi"]
 
 [dependencies]
-anyhow = "1.0.95"
+anyhow = "1.0.100"
 base64 = "0.22.1"
-clap = { version = "4.5.26", features = ["derive", "env"] }
-clap_complete = "4.5.42"
+clap = { version = "4.5.54", features = ["derive", "env"] }
+clap_complete = "4.5.65"
 colored = "3.0.0"
-duplicate = "2.0.0"
-fs-err = "3.0.0"
+duplicate = "2.0.1"
+fs-err = "3.2.2"
 hex = "0.4.3"
-lazy-regex = "3.4.1"
+lazy-regex = "3.5.1"
 md-5 = "0.10.6"
 palette = "0.7.6"
-regex = "1.11.1"
+regex = "1.12.2"
 regex-split = "0.1.0"
 sha1 = "0.10.6"
-sha2 = "0.10.8"
-strum = { version = "0.26.3", features = ["derive"] }
-thiserror = "2.0.11"
+sha2 = "0.10.9"
+strum = { version = "0.27.2", features = ["derive"] }
+thiserror = "2.0.17"
 wild = "2.2.1"
 xxhash-rust = { version = "0.8.15", features = ["xxh32", "xxh64", "xxh3"] }
 
 [dev-dependencies]
-assert_cmd = "2.0.16"
-glob = "0.3.2"
-rstest = "0.24.0"
+assert_cmd = "2.1.2"
+glob = "0.3.3"
+rstest = "0.26.1"
