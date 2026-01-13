@@ -6,6 +6,7 @@ use std::io::{BufRead, Read};
 use strum::IntoEnumIterator;
 mod digest_ext;
 mod escape;
+mod table;
 mod utils;
 
 #[derive(
@@ -293,13 +294,8 @@ fn do_checksum(options: &Options) -> anyhow::Result<()> {
             }
         };
 
-        let (red, green, blue) = utils::checksum_to_color(&checksum, false);
         let checksum_display = options.format.encode(&checksum);
-        let colored_checksum = checksum_display.color(colored::Color::TrueColor {
-            r: red,
-            g: green,
-            b: blue,
-        });
+        let colored_checksum = utils::colorize_checksum(&checksum_display, &checksum, false);
 
         let file_display = if options.zero {
             file.clone()
@@ -368,13 +364,8 @@ fn do_checksum_with_group(options: &Options) -> anyhow::Result<()> {
             let Some(checksum) = checksum else {
                 continue;
             };
-            let (red, green, blue) = utils::checksum_to_color(checksum, is_same);
             let checksum_display = options.format.encode(checksum);
-            let colored_checksum = checksum_display.color(colored::Color::TrueColor {
-                r: red,
-                g: green,
-                b: blue,
-            });
+            let colored_checksum = utils::colorize_checksum(&checksum_display, checksum, is_same);
 
             let (file_head, file_tail) = utils::split_at_last_segments(file, n);
             let file_display = if options.zero {

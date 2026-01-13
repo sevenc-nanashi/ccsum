@@ -42,3 +42,14 @@ task "readme" do
   end
   File.write("README.md", readme)
 end
+
+task "rand_table" do
+  File.open("./src/table.rs", "w") do |f|
+    f.puts "// Generated file, do not edit."
+    f.puts "pub static RAND_TABLE: [u16; 65536] = ["
+    (0x00..0xFFFF).to_a.shuffle.each do |i|
+      f.puts "    #{i},"
+    end
+    f.puts "];"
+  end
+end
