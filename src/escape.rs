@@ -40,7 +40,7 @@ pub fn unescape(s: &str) -> anyhow::Result<String> {
                 Some('\\') => unescaped.push('\\'),
                 Some('\'') => unescaped.push('\''),
                 Some('"') => unescaped.push('"'),
-                Some(c) => return Err(anyhow::anyhow!("invalid escape sequence: \\{}", c)),
+                Some(c) => return Err(anyhow::anyhow!("invalid escape sequence: \\{c}")),
                 None => return Err(anyhow::anyhow!("incomplete escape sequence")),
             }
         } else {
