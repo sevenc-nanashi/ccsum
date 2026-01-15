@@ -1,0 +1,138 @@
+name: Build
+
+on:
+  workflow_dispatch:
+    inputs:
+      name:
+        description: "Name of the release"
+        required: true
+        default: "latest"
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  publish-cargo:
+    name: Publish to Cargo
+    runs-on: ubuntu-latest
+    environment: release
+    permissions:
+      id-token: write
+      contents: write
+    outputs:
+      latest_commit: ${{ steps.get_latest_commit.outputs.latest_commit }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Rust
+        run: |
+          rustup toolchain install --profile minimal
+
+      - name: Cache rust
+        uses: Swatinem/rust-cache@v2
+
+      - name: Set up cargo-edit
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-edit
+
+      - name: Update Cargo.toml
+        run: |
+          cargo set-version ${{ github.event.inputs.name }}
+          cargo update --workspace
+
+      - name: Commit version change
+        run: |
+          git config --local user.name "GitHub Actions"
+          git config --local user.email "actions@github.com"
+          git add Cargo.toml Cargo.lock CHANGELOG.md
+          git commit -m "release: v${{ github.event.inputs.name }}"
+
+      - name: Login to crates.io
+        uses: rust-lang/crates-io-auth-action@v1
+        id: crates-io-auth
+
+      - name: Publish to crates.io
+        run: |
+          cargo publish
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ steps.crates-io-auth.outputs.token }}
+
+      - name: Push Tag
+        run: |
+          git push
+
+      - name: Get Latest Commit
+        id: get_latest_commit
+        run: |
+          echo "latest_commit=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
+
+  github-release:
+    name: GitHub Release
+    needs: publish-cargo
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            artifact_name: ccsum-linux-x86_64
+          - os: ubuntu-24.04-arm
+            target: aarch64-unknown-linux-gnu
+            artifact_name: ccsum-linux-aarch64
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            artifact_name: ccsum-macos-x86_64
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            artifact_name: ccsum-macos-aarch64
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            artifact_name: ccsum-windows-x86_64.exe
+          - os: windows-11-arm
+            target: aarch64-pc-windows-msvc
+            artifact_name: ccsum-windows-aarch64.exe
+
+    steps:
+      - uses: actions/checkout@v6
+      - name: Set up Rust
+        run: |
+          rustup toolchain install --profile minimal
+          rustup target add ${{ matrix.target }}
+
+      - name: Build
+        run: cargo build --release --target ${{ matrix.target }}
+
+      - name: Prepare Artifact
+        run: |
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            cp target/${{ matrix.target }}/release/ccsum.exe ${{ matrix.artifact_name }}
+          else
+            cp target/${{ matrix.target }}/release/ccsum ${{ matrix.artifact_name }}
+          fi
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: ${{ matrix.artifact_name }}
+
+  create-release:
+    name: Create Release
+    needs: publish-cargo
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+      - name: Download Artifacts
+        uses: actions/download-artifact@v7
+        with:
+          path: artifacts
+          merge-multiple: true
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/*
+          generate_release_notes: true
