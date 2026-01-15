@@ -40,10 +40,11 @@ Options:
   -V, --version                    Print version
 
 Display options:
-      --tag       create a BSD-style checksum
-  -z, --zero      end each output line with a NULL character instead of newline, and disable file name escaping
-      --color     colorize the output, even if stdout is not a tty
-      --no-color  disable colorized output
+      --tag              create a BSD-style checksum
+  -z, --zero             end each output line with a NULL character instead of newline, and disable file name escaping
+  -f, --format <FORMAT>  use the specified checksum format for output [default: hex] [possible values: hex, base64, base64-no-pad, base64-url]
+      --color            colorize the output, even if stdout is not a tty
+      --no-color         disable colorized output
 
 Check mode options:
       --ignore-missing  don't fail or report status for missing files
