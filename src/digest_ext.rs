@@ -38,7 +38,7 @@ impl HashExt for xxhash_rust::xxh3::Xxh3 {
         let mut buffer = vec![0; buffer_size];
         let mut reader = data;
         loop {
-            let bytes_read = reader.read(&mut buffer).unwrap();
+            let bytes_read = reader.read(&mut buffer)?;
             if bytes_read == 0 {
                 break;
             }
@@ -60,7 +60,7 @@ impl HashExt for T {
         let mut buffer = vec![0; buffer_size];
         let mut reader = data;
         loop {
-            let bytes_read = reader.read(&mut buffer).unwrap();
+            let bytes_read = reader.read(&mut buffer)?;
             if bytes_read == 0 {
                 break;
             }
