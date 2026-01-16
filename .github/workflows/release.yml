@@ -96,6 +96,9 @@ jobs:
 
     steps:
       - uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.publish-cargo.outputs.latest_commit }}
+
       - name: Set up Rust
         run: |
           rustup toolchain install --profile minimal
@@ -126,6 +129,8 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.publish-cargo.outputs.latest_commit }}
       - name: Download Artifacts
         uses: actions/download-artifact@v7
         with:
