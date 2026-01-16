@@ -6,7 +6,6 @@ on:
       name:
         description: "Name of the release"
         required: true
-        default: "latest"
 
 defaults:
   run:
