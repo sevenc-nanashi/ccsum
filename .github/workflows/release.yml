@@ -122,7 +122,9 @@ jobs:
 
   create-release:
     name: Create Release
-    needs: publish-cargo
+    needs:
+      - publish-cargo
+      - github-release
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -138,5 +140,6 @@ jobs:
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: v${{ github.event.inputs.name }}
           files: artifacts/*
           generate_release_notes: true
