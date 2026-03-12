@@ -1,7 +1,7 @@
 # ccsum / Convenient Checksum
 
 [![asciicast](./demo.png)](https://asciinema.org/a/Qz7hAzfjDI1BIqViJCA8fUQHS)
-ccsum is sha256sum (md5sum, sha1sum, and sha512sum) with improved usability.
+ccsum is a drop-in replacement of sha256sum (md5sum, sha1sum, and sha512sum) with improved usability.
 
 ## Features
 
