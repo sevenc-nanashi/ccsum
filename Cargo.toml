@@ -10,6 +10,11 @@ keywords = ["checksum", "hash", "utility", "cli"]
 categories = ["command-line-utilities"]
 authors = ["sevenc-nanashi"]
 
+[package.metadata.binstall]
+pkg-fmt = "bin"
+disabled-strategies = ["quick-install", "compile"]
+pkg-url = "{ repo }/releases/download/v{ version }/ccsum-{ target-family }-{ target-arch }{ binary-ext }"
+
 [dependencies]
 anyhow = "1.0.100"
 base64 = "0.22.1"

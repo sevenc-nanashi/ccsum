@@ -14,6 +14,12 @@ ccsum is sha256sum (md5sum, sha1sum, and sha512sum) with improved usability.
 
 Pre-built binaries are available on the [releases page](https://github.com/sevenc-nanashi/ccsum/releases/latest).
 
+Also, you can install ccsum using [cargo-binstall](https://github.com/cargo-bins/cargo-binstall):
+
+```bash
+cargo binstall ccsum
+```
+
 ### Build from source
 
 ```bash
