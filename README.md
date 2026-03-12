@@ -73,6 +73,24 @@ Group mode options:
 ```
 <!-- usage ends here -->
 
+### Troubleshooting
+
+#### Output is not colored
+
+You can force colorized output by using the `--color` option.
+
+#### Output is colored, but it is not fully colored
+
+This CLI respects `COLORTERM` environment variable.
+You can force full color support by setting `COLORTERM` to `truecolor`:
+
+```bash
+COLORTERM=truecolor ccsum <file>
+
+# Or, if you want to set it globally:
+alias ccsum='COLORTERM=truecolor ccsum'
+```
+
 ## License
 
 This project is licensed under the [MIT license](LICENSE).
